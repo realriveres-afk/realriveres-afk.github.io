@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Longevitat</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide-react@0.383.0/dist/umd/lucide-react.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<style>
+  :root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+  html,body{background:#EAF0F8;font-family:Verdana,Tahoma,"Segoe UI",sans-serif;font-size:18px;color:#0B2A4A}
+  button:focus-visible{outline:4px solid #F5B301;outline-offset:3px}
+  .wave{animation:w 3s ease-in-out infinite alternate}
+  @keyframes w{from{transform:translateX(-14px)}to{transform:translateX(0)}}
+  @media (prefers-reduced-motion:reduce){.wave{animation:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const html = htm.bind(React.createElement);
+const { useState } = React;
+const L = window.lucideReact || {};
+const I = (n, p) => L[n] ? React.createElement(L[n], p) : null;
+const META = 3000, COPO = 250;
+
+/* ---------- Ilustrações (SVG) ---------- */
+const Prato1 = () => html`<svg viewBox="0 0 200 200" className="w-full h-full" role="img" aria-label="Prato com sardinha, arroz integral e couve">
+  <circle cx="100" cy="100" r="95" fill="#fff" stroke="#CBD5E1" strokeWidth="4"/>
+  <circle cx="100" cy="100" r="76" fill="#F1F5F9"/>
+  <ellipse cx="64" cy="108" rx="36" ry="30" fill="#C9A26A"/>
+  <g fill="#8B6B3A"><circle cx="50" cy="100" r="3"/><circle cx="66" cy="94" r="3"/><circle cx="78" cy="110" r="3"/><circle cx="56" cy="120" r="3"/><circle cx="70" cy="124" r="3"/></g>
+  <ellipse cx="142" cy="72" rx="28" ry="11" fill="#2F855A" transform="rotate(-30 142 72)"/>
+  <ellipse cx="150" cy="96" rx="26" ry="10" fill="#38A169" transform="rotate(14 150 96)"/>
+  <g transform="rotate(-10 104 146)"><ellipse cx="104" cy="146" rx="44" ry="14" fill="#8FA3B8"/><polygon points="146,146 170,132 170,160" fill="#8FA3B8"/><ellipse cx="104" cy="150" rx="40" ry="7" fill="#CBD5E1"/><circle cx="72" cy="142" r="3.5" fill="#0B2A4A"/></g>
+  <circle cx="118" cy="62" r="10" fill="#F6E05E"/><circle cx="118" cy="62" r="5" fill="#ECC94B"/>
+</svg>`;
+const Prato2 = () => html`<svg viewBox="0 0 200 200" className="w-full h-full" role="img" aria-label="Tigela de caldo de legumes com ovo">
+  <circle cx="100" cy="100" r="95" fill="#fff" stroke="#CBD5E1" strokeWidth="4"/>
+  <circle cx="100" cy="100" r="74" fill="#C05621"/>
+  <circle cx="100" cy="100" r="64" fill="#F6AD55"/>
+  <g fill="#DD6B20"><circle cx="68" cy="84" r="10"/><circle cx="84" cy="126" r="10"/><circle cx="132" cy="120" r="10"/><circle cx="76" cy="108" r="7"/></g>
+  <g fill="#FBD38D"><rect x="116" y="70" width="16" height="16" rx="3"/><rect x="104" y="136" width="14" height="14" rx="3"/></g>
+  <g><ellipse cx="108" cy="96" rx="24" ry="19" fill="#fff"/><circle cx="108" cy="96" r="9" fill="#F6C90E"/></g>
+  <g fill="#2F855A"><circle cx="70" cy="64" r="3.5"/><circle cx="140" cy="94" r="3.5"/><circle cx="92" cy="140" r="3.5"/><circle cx="122" cy="132" r="3.5"/><circle cx="60" cy="118" r="3.5"/></g>
+</svg>`;
+const Copo = ({ pct }) => {
+  const y = 190 - (pct / 100) * 150;
+  return html`<svg viewBox="0 0 160 220" className="w-full h-full" role="img" aria-label=${`Copo ${Math.round(pct)}% cheio`}>
+    <defs><clipPath id="cp"><path d="M30 30 L130 30 L118 196 Q117 206 107 206 L53 206 Q43 206 42 196 Z"/></clipPath></defs>
+    <g clipPath="url(#cp)">
+      <rect x="0" y="30" width="160" height="180" fill="#E0F2FE"/>
+      <g style=${{ transition: 'transform .6s ease' }} transform=${`translate(0 ${y - 40})`}>
+        <g className="wave"><path d="M-20 14 Q 0 0 20 14 T 60 14 T 100 14 T 140 14 T 180 14 V 220 H -20 Z" fill="#0EA5E9"/></g>
+      </g>
+    </g>
+    <path d="M30 30 L130 30 L118 196 Q117 206 107 206 L53 206 Q43 206 42 196 Z" fill="none" stroke="#0B2A4A" strokeWidth="6" strokeLinejoin="round"/>
+  </svg>`;
+};
+
+/* ---------- Dados ---------- */
+const exames = [
+  { id:'glicose', nome:'Glicose', icone:'Droplet', valor:'92', unidade:'mg/dL', msg:'Açúcar no sangue excelente', status:'ok', chip:'Ótimo',
+    zonas:['a','g','r'], pos:42, ref:'Referência: 70 a 99 mg/dL', explica:'Seu açúcar em jejum está no ponto ideal. Mantenha as refeições nos mesmos horários.' },
+  { id:'colesterol', nome:'Colesterol (LDL)', icone:'Heart', valor:'148', unidade:'mg/dL', msg:'Gordura um pouco alta', status:'warn', chip:'Atenção',
+    zonas:['g','a','r'], pos:55, ref:'Ideal: abaixo de 130 mg/dL', explica:'A gordura "ruim" do sangue passou um pouco do ideal. Alimentação leve e caminhadas ajudam.' },
+  { id:'b12', nome:'Vitamina B12', icone:'Zap', valor:'180', unidade:'pg/mL', msg:'Nível baixo. Atenção necessária', status:'alert', chip:'Alerta',
+    zonas:['r','a','g'], pos:12, ref:'Referência: acima de 200 pg/mL', explica:'A B12 ajuda na energia, na memória e nos nervos. Leve este resultado à consulta na UBS.' }
+];
+const tema = {
+  ok:   { bg:'bg-green-100', borda:'border-green-700', faixa:'bg-green-700', chip:'bg-green-700 text-white', icone:'text-green-800', st:'CheckCircle2' },
+  warn: { bg:'bg-amber-100', borda:'border-amber-500', faixa:'bg-amber-500', chip:'bg-amber-400 text-slate-900', icone:'text-amber-800', st:'AlertTriangle' },
+  alert:{ bg:'bg-red-100',   borda:'border-red-700',   faixa:'bg-red-700',   chip:'bg-red-700 text-white', icone:'text-red-800', st:'AlertCircle' }
+};
+const zc = { g:'bg-green-600', a:'bg-amber-400', r:'bg-red-600' };
+const pratos = [
+  { nome:'Sardinha assada com arroz integral e couve', momento:'Almoço', Art:Prato1, nutri:['Vitamina B12','Ômega-3','Fibras'],
+    porque:'A sardinha é uma das fontes mais ricas de B12, e as gorduras boas dela ajudam a baixar o colesterol LDL.',
+    ingr:['2 sardinhas frescas','4 colheres de arroz integral','1 maço de couve','Alho, limão e fio de azeite'],
+    passos:['Tempere a sardinha com limão e alho.','Asse por 15 minutos, sem fritar.','Refogue a couve rapidamente e sirva com o arroz.'] },
+  { nome:'Caldo de legumes com ovo', momento:'Jantar', Art:Prato2, nutri:['Vitamina B12','Proteína','Leve'],
+    porque:'Jantar leve e macio. O ovo traz B12 e proteína, e os legumes dão fibras sem pesar no estômago.',
+    ingr:['1 ovo','1 cenoura e 1 chuchu','2 fatias de abóbora','Cheiro-verde'],
+    passos:['Cozinhe os legumes em água até ficarem macios.','Junte o ovo e deixe cozinhar por 6 minutos.','Finalize com cheiro-verde e pouco sal.'] }
+];
+
+/* ---------- Componentes ---------- */
+function Exame({ e }) {
+  const [open, setOpen] = useState(false);
+  const t = tema[e.status];
+  return html`<div className=${`rounded-3xl bg-white shadow-lg overflow-hidden border-2 ${t.borda}`}>
+    <div className=${`h-3 ${t.faixa}`}></div>
+    <button onClick=${() => setOpen(!open)} aria-expanded=${open} className="w-full text-left p-5 min-h-[120px]">
+      <div className="flex items-center gap-4">
+        <div className=${`w-20 h-20 shrink-0 rounded-2xl flex items-center justify-center ${t.bg}`}>${I(e.icone, { size:46, className:t.icone, strokeWidth:2.2 })}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-lg font-semibold text-slate-600">${e.nome}</div>
+          <div className="flex items-baseline gap-2"><span className="text-4xl font-extrabold">${e.valor}</span><span className="text-base text-slate-600">${e.unidade}</span></div>
+        </div>
+        <span className=${`px-3 py-1.5 rounded-full text-base font-bold inline-flex items-center gap-1 ${t.chip}`}>${I(t.st, { size:18 })}${e.chip}</span>
+      </div>
+      <p className="text-xl font-bold mt-4">${e.msg}</p>
+      <div className="relative mt-4 mb-1">
+        <div className="flex h-3 rounded-full overflow-hidden">${e.zonas.map((z, i) => html`<div key=${i} className=${`flex-1 ${zc[z]}`}></div>`)}</div>
+        <div className="absolute -top-1.5 w-1.5 h-6 rounded bg-[#0B2A4A] ring-2 ring-white" style=${{ left:e.pos + '%' }}></div>
+      </div>
+      <div className="flex items-center justify-between text-base font-semibold text-[#0B2A4A] mt-3">
+        <span>${open ? 'Fechar explicação' : 'Toque para entender'}</span>${I(open ? 'ChevronUp' : 'ChevronDown', { size:28 })}
+      </div>
+    </button>
+    ${open && html`<div className="px-5 pb-5 text-lg leading-relaxed"><div className="border-t-2 border-slate-200 pt-4">${e.explica}</div><p className="text-base text-slate-600 mt-2">${e.ref}</p></div>`}
+  </div>`;
+}
+
+function Trilha() {
+  const [aba, setAba] = useState('nutri');
+  const [feito, setFeito] = useState({});
+  const abas = [['nutri', 'Nutrição', 'Utensils'], ['enf', 'Enfermagem', 'Stethoscope']];
+  const itens = {
+    nutri: [['n1', 'Almoço rico em Vitamina B12', 'Sardinha assada com arroz integral e couve.', 'Fish'], ['n2', 'Lanche da tarde', 'Um ovo cozido e uma fruta. Evite frituras hoje.', 'Apple']],
+    enf: [['e1', 'Lembrete de hidratação', 'Beba um copo de água agora.', 'GlassWater'], ['e2', 'Remédio da pressão às 18h', 'Deixe a caixinha à vista, perto do copo de água.', 'Pill']]
+  };
+  return html`<section>
+    <h2 className="text-2xl font-extrabold mb-4">O que fazer hoje</h2>
+    <div role="tablist" className="grid grid-cols-2 gap-3 mb-4">${abas.map(([id, nome, ic]) => html`
+      <button key=${id} role="tab" aria-selected=${aba === id} onClick=${() => setAba(id)}
+        className=${`min-h-[64px] rounded-2xl text-xl font-bold flex items-center justify-center gap-2 border-2 border-[#0B2A4A] ${aba === id ? 'bg-[#0B2A4A] text-white shadow-lg' : 'bg-white text-[#0B2A4A]'}`}>${I(ic, { size:26 })}${nome}</button>`)}</div>
+    <div className="space-y-4">${itens[aba].map(([k, tit, tx, ic]) => html`
+      <div key=${k} className=${`rounded-3xl p-5 border-2 shadow-md ${feito[k] ? 'bg-green-50 border-green-700' : 'bg-white border-slate-200'}`}>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 shrink-0 rounded-2xl bg-[#0B2A4A] text-white flex items-center justify-center">${I(ic, { size:34 })}</div>
+          <div><h3 className="text-xl font-bold">${tit}</h3><p className="text-lg mt-1">${tx}</p></div>
+        </div>
+        <button onClick=${() => setFeito({ ...feito, [k]:!feito[k] })} aria-pressed=${!!feito[k]}
+          className=${`mt-4 w-full min-h-[60px] rounded-2xl text-lg font-bold flex items-center justify-center gap-2 border-2 ${feito[k] ? 'bg-green-700 border-green-700 text-white' : 'bg-white border-[#0B2A4A] text-[#0B2A4A]'}`}>
+          ${I(feito[k] ? 'CheckCircle2' : 'Circle', { size:26 })}${feito[k] ? 'Feito. Muito bem!' : 'Marcar como feito'}</button>
+      </div>`)}</div>
+  </section>`;
+}
+
+function Topo({ titulo, sub, children }) {
+  return html`<header className="relative overflow-hidden bg-gradient-to-br from-[#071B33] via-[#0B2A4A] to-[#16467A] text-white px-5 pt-8 pb-8 rounded-b-[2.5rem] shadow-xl">
+    <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-white/10"></div>
+    <div className="absolute right-16 top-24 w-20 h-20 rounded-full bg-white/5"></div>
+    <div className="relative">
+      <p className="text-base text-blue-100 flex items-center gap-2 font-semibold">${I('HeartPulse', { size:22 })}Longevitat</p>
+      <h1 className="text-3xl font-extrabold mt-1">${titulo}</h1>
+      ${sub && html`<p className="text-lg text-blue-100 mt-1">${sub}</p>`}
+      ${children}
+    </div>
+  </header>`;
+}
+
+function Inicio({ copos, ir }) {
+  const [falando, setFalando] = useState(false);
+  const data = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const ouvir = () => {
+    const s = window.speechSynthesis; if (!s) return;
+    if (falando) { s.cancel(); setFalando(false); return; }
+    const u = new SpeechSynthesisUtterance('Olá, Senhor Antônio. Seu açúcar no sangue está excelente. Seu colesterol está um pouco alto. Sua vitamina B12 está baixa e precisa de atenção. Leve este resultado à consulta na UBS. Hoje, não esqueça o remédio da pressão às 18 horas.');
+    u.lang = 'pt-BR'; u.rate = 0.85; u.onend = () => setFalando(false);
+    setFalando(true); s.speak(u);
+  };
+  const P = pratos[0].Art;
+  return html`<div>
+    <${Topo} titulo="Olá, Sr. Antônio" sub="Veja como está a sua saúde hoje.">
+      <button onClick=${ouvir} aria-pressed=${falando} className="mt-6 w-full min-h-[84px] rounded-3xl bg-white text-[#0B2A4A] text-2xl font-extrabold flex items-center justify-center gap-4 border-4 border-[#F5B301] shadow-2xl">
+        <span className="w-14 h-14 rounded-full bg-[#0B2A4A] text-white flex items-center justify-center">${I(falando ? 'VolumeX' : 'Volume2', { size:32, strokeWidth:2.5 })}</span>
+        ${falando ? 'Parar leitura' : 'Ouvir minha saúde'}</button>
+    <//>
+    <main className="px-5 mt-6 space-y-8">
+      <div className="bg-white rounded-3xl p-5 flex gap-4 items-start shadow-lg border-l-8 border-[#F5B301]">
+        <div className="shrink-0 w-14 h-14 rounded-2xl bg-[#0B2A4A] text-white flex items-center justify-center">${I('MailCheck', { size:30 })}</div>
+        <div><p className="text-xl font-extrabold">Chegaram novos exames</p>
+          <p className="text-base mt-1 leading-relaxed">A UBS e o laboratório enviaram seus resultados automaticamente.</p>
+          <p className="text-base font-bold mt-2 capitalize text-slate-600">${data}</p></div>
+      </div>
+      <section><h2 className="text-2xl font-extrabold mb-1">Meus resultados</h2>
+        <div className="space-y-4 mt-3">${exames.map(e => html`<${Exame} key=${e.id} e=${e}/>`)}</div></section>
+      <section className="grid grid-cols-2 gap-4">
+        <button onClick=${() => ir('prato')} className="bg-white rounded-3xl shadow-lg p-4 text-left border-2 border-slate-200 min-h-[220px]">
+          <div className="w-28 h-28 mx-auto"><${P}/></div>
+          <p className="text-lg font-extrabold mt-2">Prato do dia</p><p className="text-base text-slate-600">Ver receita</p></button>
+        <button onClick=${() => ir('agua')} className="bg-white rounded-3xl shadow-lg p-4 text-left border-2 border-slate-200 min-h-[220px]">
+          <div className="w-20 h-28 mx-auto"><${Copo} pct=${Math.min(100, copos * COPO / META * 100)}/></div>
+          <p className="text-lg font-extrabold mt-2">${(copos * COPO / 1000).toLocaleString('pt-BR')} de 3 litros</p><p className="text-base text-slate-600">Registrar água</p></button>
+      </section>
+      <${Trilha}/>
+      <p className="text-sm text-slate-600 text-center leading-relaxed">Protótipo com dados fictícios. Não substitui a consulta com profissionais de saúde.</p>
+    </main>
+  </div>`;
+}
+
+function Prato() {
+  const [i, setI] = useState(0);
+  const p = pratos[i];
+  return html`<div>
+    <${Topo} titulo="Prato saudável" sub="Pensado para os seus exames de hoje."/>
+    <main className="px-5 mt-6 space-y-6">
+      <div className="grid grid-cols-2 gap-3">${pratos.map((x, k) => html`
+        <button key=${k} onClick=${() => setI(k)} aria-pressed=${i === k} className=${`min-h-[60px] rounded-2xl text-xl font-bold border-2 border-[#0B2A4A] ${i === k ? 'bg-[#0B2A4A] text-white shadow-lg' : 'bg-white text-[#0B2A4A]'}`}>${x.momento}</button>`)}</div>
+      <div className="bg-white rounded-[2rem] shadow-xl p-5">
+        <div className="w-full max-w-[320px] mx-auto aspect-square"><${p.Art}/></div>
+        <h2 className="text-2xl font-extrabold mt-4 leading-snug">${p.nome}</h2>
+        <div className="flex flex-wrap gap-2 mt-3">${p.nutri.map(n => html`<span key=${n} className="px-4 py-2 rounded-full bg-blue-100 text-[#0B2A4A] font-bold text-base">${n}</span>`)}</div>
+      </div>
+      <div className="bg-[#0B2A4A] text-white rounded-3xl p-5 flex gap-4"><div className="shrink-0">${I('Sparkles', { size:34, className:'text-[#F5B301]' })}</div>
+        <div><p className="text-xl font-extrabold">Por que este prato?</p><p className="text-lg mt-1 leading-relaxed">${p.porque}</p></div></div>
+      <div className="bg-white rounded-3xl shadow-lg p-5"><h3 className="text-xl font-extrabold flex items-center gap-2">${I('ShoppingBasket', { size:28 })}Ingredientes</h3>
+        <ul className="mt-3 space-y-2 text-lg">${p.ingr.map(x => html`<li key=${x} className="flex gap-3 items-start">${I('Check', { size:24, className:'text-green-700 shrink-0 mt-0.5', strokeWidth:3 })}${x}</li>`)}</ul></div>
+      <div className="bg-white rounded-3xl shadow-lg p-5"><h3 className="text-xl font-extrabold flex items-center gap-2">${I('ChefHat', { size:28 })}Como fazer</h3>
+        <ol className="mt-3 space-y-3 text-lg">${p.passos.map((x, k) => html`<li key=${k} className="flex gap-3 items-start"><span className="shrink-0 w-9 h-9 rounded-full bg-[#0B2A4A] text-white font-bold flex items-center justify-center">${k + 1}</span>${x}</li>`)}</ol></div>
+    </main>
+  </div>`;
+}
+
+function Agua({ copos, setCopos }) {
+  const total = copos * COPO, pct = Math.min(100, total / META * 100), max = META / COPO, ok = total >= META;
+  const litros = v => (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits:2 });
+  return html`<div>
+    <${Topo} titulo="Minha água" sub="Meta de hoje: 3 litros (12 copos)."/>
+    <main className="px-5 mt-6 space-y-6">
+      <div className="bg-white rounded-[2rem] shadow-xl p-6 text-center">
+        <div className="w-44 h-60 mx-auto"><${Copo} pct=${pct}/></div>
+        <p className="mt-4 text-5xl font-extrabold">${litros(total)} <span className="text-2xl text-slate-600">de 3 litros</span></p>
+        <div className="mt-4 h-5 rounded-full bg-slate-200 overflow-hidden"><div className="h-full rounded-full bg-sky-500" style=${{ width:pct + '%', transition:'width .6s' }}></div></div>
+        <p className=${`mt-4 text-xl font-bold flex items-center justify-center gap-2 ${ok ? 'text-green-800' : ''}`}>
+          ${ok ? html`${I('PartyPopper', { size:28 })}Meta alcançada. Parabéns!` : copos === 0 ? 'Vamos começar? Beba o primeiro copo.' : `Faltam ${litros(META - total)} L. Continue assim!`}</p>
+      </div>
+      <button onClick=${() => setCopos(Math.min(max, copos + 1))} disabled=${ok}
+        className="w-full min-h-[88px] rounded-3xl bg-sky-600 disabled:bg-slate-400 text-white text-2xl font-extrabold flex items-center justify-center gap-3 shadow-xl active:scale-[.98]">
+        ${I('Plus', { size:38, strokeWidth:3 })}Beber 1 copo <span className="text-lg font-semibold">(250 ml)</span></button>
+      <button onClick=${() => setCopos(Math.max(0, copos - 1))} disabled=${copos === 0}
+        className="w-full min-h-[64px] rounded-2xl bg-white border-2 border-[#0B2A4A] text-[#0B2A4A] disabled:opacity-40 text-xl font-bold flex items-center justify-center gap-2">${I('Undo2', { size:26 })}Desfazer último copo</button>
+      <div className="bg-white rounded-3xl shadow-lg p-5"><p className="text-lg font-extrabold mb-3">Seus 12 copos de hoje</p>
+        <div className="grid grid-cols-6 gap-2">${Array.from({ length:max }, (_, k) => html`
+          <div key=${k} className=${`aspect-square rounded-xl flex items-center justify-center border-2 ${k < copos ? 'bg-sky-500 border-sky-600 text-white' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>${I('GlassWater', { size:26 })}</div>`)}</div></div>
+      <p className="text-sm text-slate-600 text-center leading-relaxed">A meta de água deve ser combinada com sua equipe de saúde, principalmente se você tem problemas no coração ou nos rins.</p>
+    </main>
+  </div>`;
+}
+
+function App() {
+  const [tab, setTab] = useState('inicio');
+  const [copos, setCopos] = useState(4);
+  const nav = [['inicio', 'Início', 'House'], ['prato', 'Prato', 'UtensilsCrossed'], ['agua', 'Água', 'GlassWater']];
+  const ir = t => { setTab(t); window.scrollTo(0, 0); };
+  return html`<div className="max-w-xl mx-auto pb-36">
+    ${tab === 'inicio' && html`<${Inicio} copos=${copos} ir=${ir}/>`}
+    ${tab === 'prato' && html`<${Prato}/>`}
+    ${tab === 'agua' && html`<${Agua} copos=${copos} setCopos=${setCopos}/>`}
+    <nav aria-label="Menu principal" className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-[#0B2A4A] shadow-2xl" style=${{ paddingBottom:'env(safe-area-inset-bottom,0px)' }}>
+      <div className="max-w-xl mx-auto grid grid-cols-3">${nav.map(([id, nome, ic]) => html`
+        <button key=${id} onClick=${() => ir(id)} aria-current=${tab === id ? 'page' : undefined}
+          className=${`min-h-[80px] flex flex-col items-center justify-center gap-1 text-lg font-bold ${tab === id ? 'bg-[#0B2A4A] text-white' : 'text-[#0B2A4A]'}`}>${I(ic, { size:32, strokeWidth:2.4 })}${nome}</button>`)}</div>
+    </nav>
+  </div>`;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+</script>
+</body>
+</html>
